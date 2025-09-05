@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { createClient } from '@supabase/supabase-js'
+import AdminMap from './components/AdminMap.jsx'
+import Analytics from './components/Analytics.jsx'
 import './App.css'
 
 // Initialize Supabase client directly in the admin dashboard
@@ -7,6 +9,9 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
+
+// Export supabase for use in other components
+export { supabase }
 
 // Simple Auth Component
 function Auth() {
@@ -53,222 +58,6 @@ function Auth() {
         {loading ? 'Loading...' : 'Send magic link'}
       </button>
     </form>
-  )
-}
-
-// Admin Map Component
-function AdminMap() {
-  const [reports, setReports] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    fetchReports()
-  }, [])
-
-  const fetchReports = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      setReports(data || [])
-    } catch (error) {
-      console.error('Error fetching reports:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const updateReportStatus = async (reportId, newStatus) => {
-    try {
-      const { error } = await supabase
-        .from('reports')
-        .update({ status: newStatus })
-        .eq('id', reportId)
-
-      if (error) throw error
-      fetchReports() // Refresh the list
-    } catch (error) {
-      console.error('Error updating report:', error)
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-6">Reports Management</h2>
-      
-      <div className="bg-white shadow overflow-hidden sm:rounded-md">
-        <ul className="divide-y divide-gray-200">
-          {reports.map((report) => (
-            <li key={report.id} className="px-6 py-4">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900">{report.title}</h3>
-                  <p className="text-sm text-gray-600">{report.description}</p>
-                  <div className="mt-2 flex items-center space-x-4">
-                    <span className="text-sm text-gray-500">
-                      Status: <span className={`font-medium ${
-                        report.status === 'resolved' ? 'text-green-600' :
-                        report.status === 'in_progress' ? 'text-yellow-600' :
-                        'text-red-600'
-                      }`}>
-                        {report.status}
-                      </span>
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {new Date(report.created_at).toLocaleDateString()}
-                    </span>
-                  </div>
-                </div>
-                
-                <div className="flex space-x-2">
-                  <select
-                    value={report.status}
-                    onChange={(e) => updateReportStatus(report.id, e.target.value)}
-                    className="text-sm border border-gray-300 rounded px-2 py-1"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="resolved">Resolved</option>
-                  </select>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ul>
-        
-        {reports.length === 0 && (
-          <div className="px-6 py-8 text-center text-gray-500">
-            No reports found.
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Analytics Component
-function Analytics() {
-  const [stats, setStats] = useState({
-    totalReports: 0,
-    pendingReports: 0,
-    resolvedReports: 0,
-    inProgressReports: 0
-  })
-
-  useEffect(() => {
-    fetchStats()
-  }, [])
-
-  const fetchStats = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('reports')
-        .select('status')
-
-      if (error) throw error
-
-      const stats = {
-        totalReports: data.length,
-        pendingReports: data.filter(r => r.status === 'pending').length,
-        inProgressReports: data.filter(r => r.status === 'in_progress').length,
-        resolvedReports: data.filter(r => r.status === 'resolved').length,
-      }
-
-      setStats(stats)
-    } catch (error) {
-      console.error('Error fetching stats:', error)
-    }
-  }
-
-  return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-6">Analytics Dashboard</h2>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-indigo-500 rounded-md flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">T</span>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Reports</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.totalReports}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-yellow-500 rounded-md flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">P</span>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Pending</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.pendingReports}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-500 rounded-md flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">I</span>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">In Progress</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.inProgressReports}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-green-500 rounded-md flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">R</span>
-                </div>
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Resolved</dt>
-                  <dd className="text-lg font-medium text-gray-900">{stats.resolvedReports}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   )
 }
 
