@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import 'lucide-react/dist/lucide-react.css';
+
+.close-icon {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+.analytics-icon {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
