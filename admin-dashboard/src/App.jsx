@@ -19,21 +19,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Debug function to check email status
-window.debugEmail = async (email) => {
-  try {
-    const { data, error } = await supabase
-      .from('auth.users')
-      .select('*')
-      .eq('email', email)
-    
-    console.log('Email status:', { data, error })
-    return { data, error }
-  } catch (err) {
-    console.error('Debug error:', err)
-  }
-}
-
 // Export supabase for use in other components
 export { supabase }
 
@@ -44,41 +29,7 @@ function Auth() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
-  const [resendingEmail, setResendingEmail] = useState(false)
   const [error, setError] = useState(null)
-
-  const resendVerification = async () => {
-    if (!email) {
-      setError('Please enter your email address first')
-      return
-    }
-
-    setResendingEmail(true)
-    setError(null)
-
-    try {
-      const currentOrigin = window.location.origin
-      const redirectTo = `${currentOrigin}/admin`
-
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-        options: {
-          emailRedirectTo: redirectTo
-        }
-      })
-
-      if (error) {
-        throw error
-      } else {
-        alert('Verification email resent! Check your inbox and spam folder.')
-      }
-    } catch (err) {
-      setError('Failed to resend verification: ' + err.message)
-    } finally {
-      setResendingEmail(false)
-    }
-  }
 
   const handleAuth = async (e) => {
     e.preventDefault()
@@ -86,10 +37,6 @@ function Auth() {
     setError(null)
 
     try {
-      // Get current URL for proper redirects
-      const currentOrigin = window.location.origin
-      const redirectTo = `${currentOrigin}/admin`
-
       if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -97,29 +44,15 @@ function Auth() {
         })
         if (error) throw error
       } else {
-        // For signup, first try to clear any existing session
-        await supabase.auth.signOut()
-        
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { name, role: 'admin' },
-            emailRedirectTo: redirectTo // Dynamic redirect URL
+            data: { name, role: 'admin' } // Set admin role for new signups
           }
         })
-        
-        if (error) {
-          if (error.message.includes('already registered')) {
-            setError('This email is already registered. Try signing in instead.')
-          } else if (error.message.includes('rate limit')) {
-            setError('Too many requests. Please wait a few minutes and try again.')
-          } else {
-            throw error
-          }
-        } else {
-          alert('Check your email to confirm your account! (Check spam folder too)')
-        }
+        if (error) throw error
+        alert('Check your email to confirm your account!')
       }
     } catch (err) {
       setError(err.message)
@@ -202,19 +135,6 @@ function Auth() {
           </div>
         )}
       </div>
-
-      {!isLogin && (
-        <div className="text-center">
-          <button
-            type="button"
-            onClick={resendVerification}
-            disabled={resendingEmail || !email}
-            className="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
-          >
-            {resendingEmail ? 'Resending...' : 'Resend verification email'}
-          </button>
-        </div>
-      )}
 
       <div>
         <button
@@ -328,6 +248,28 @@ function App() {
     }
   }
 
+  // Temporary function to clean up orphaned auth users
+  const handleCleanupAuthUser = async () => {
+    const email = prompt('Enter email to remove from auth:')
+    if (!email) return
+
+    try {
+      // This requires admin privileges - you might need to do this from Supabase dashboard instead
+      const { data, error } = await supabase.auth.admin.deleteUser(
+        email // This actually needs user ID, not email
+      )
+      
+      if (error) {
+        console.error('Error deleting auth user:', error)
+        alert('Error: ' + error.message + '\n\nPlease use the Supabase Dashboard instead:\n1. Go to Authentication → Users\n2. Find and delete the user\n3. Try signing up again')
+      } else {
+        alert('User deleted from auth system')
+      }
+    } catch (error) {
+      alert('This requires admin access. Please use Supabase Dashboard:\n1. Go to Authentication → Users\n2. Find and delete the user\n3. Try signing up again')
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -418,6 +360,13 @@ function App() {
               }`}
             >
               Analytics
+            </button>
+            <button
+              onClick={handleCleanupAuthUser}
+              className="px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-50"
+              title="Remove orphaned auth users"
+            >
+              Cleanup Auth
             </button>
             <button
               onClick={handleSignOut}
