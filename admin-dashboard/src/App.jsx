@@ -19,6 +19,21 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
+// Debug function to check email status
+window.debugEmail = async (email) => {
+  try {
+    const { data, error } = await supabase
+      .from('auth.users')
+      .select('*')
+      .eq('email', email)
+    
+    console.log('Email status:', { data, error })
+    return { data, error }
+  } catch (err) {
+    console.error('Debug error:', err)
+  }
+}
+
 // Export supabase for use in other components
 export { supabase }
 
@@ -29,7 +44,41 @@ function Auth() {
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resendingEmail, setResendingEmail] = useState(false)
   const [error, setError] = useState(null)
+
+  const resendVerification = async () => {
+    if (!email) {
+      setError('Please enter your email address first')
+      return
+    }
+
+    setResendingEmail(true)
+    setError(null)
+
+    try {
+      const currentOrigin = window.location.origin
+      const redirectTo = `${currentOrigin}/admin`
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: redirectTo
+        }
+      })
+
+      if (error) {
+        throw error
+      } else {
+        alert('Verification email resent! Check your inbox and spam folder.')
+      }
+    } catch (err) {
+      setError('Failed to resend verification: ' + err.message)
+    } finally {
+      setResendingEmail(false)
+    }
+  }
 
   const handleAuth = async (e) => {
     e.preventDefault()
@@ -48,6 +97,9 @@ function Auth() {
         })
         if (error) throw error
       } else {
+        // For signup, first try to clear any existing session
+        await supabase.auth.signOut()
+        
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -56,8 +108,18 @@ function Auth() {
             emailRedirectTo: redirectTo // Dynamic redirect URL
           }
         })
-        if (error) throw error
-        alert('Check your email to confirm your account!')
+        
+        if (error) {
+          if (error.message.includes('already registered')) {
+            setError('This email is already registered. Try signing in instead.')
+          } else if (error.message.includes('rate limit')) {
+            setError('Too many requests. Please wait a few minutes and try again.')
+          } else {
+            throw error
+          }
+        } else {
+          alert('Check your email to confirm your account! (Check spam folder too)')
+        }
       }
     } catch (err) {
       setError(err.message)
@@ -140,6 +202,19 @@ function Auth() {
           </div>
         )}
       </div>
+
+      {!isLogin && (
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={resendVerification}
+            disabled={resendingEmail || !email}
+            className="text-sm font-medium text-indigo-600 hover:text-indigo-500 disabled:opacity-50"
+          >
+            {resendingEmail ? 'Resending...' : 'Resend verification email'}
+          </button>
+        </div>
+      )}
 
       <div>
         <button
