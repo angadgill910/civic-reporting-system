@@ -4,17 +4,19 @@
   "scripts": {
     "dev": "concurrently \"npm run dev:landing\" \"npm run dev:citizen\" \"npm run dev:admin\"",
     "dev:landing": "cd landing-page && npm install && npm run dev",
-    "dev:citizen": "cd citizen-portal && npm run dev",
+    "dev:citizen": "cd citizen-portal && npm run dev", 
     "dev:admin": "cd admin-dashboard && npm run dev -- --port 5174",
     "build": "npm run build:all",
-    "build:all": "npm run build:landing && npm run build:citizen && npm run build:admin",
+    "build:all": "npm run build:landing && npm run build:citizen && npm run build:admin && npm run combine:builds",
     "build:landing": "cd landing-page && npm install && npm run build",
     "build:citizen": "cd citizen-portal && npm install && npm run build",
-    "build:admin": "cd admin-dashboard && npm install && npm run build",
+    "build:admin": "cd admin-dashboard && npm install && npm run build", 
+    "combine:builds": "node scripts/combine-builds.js",
     "vercel-build": "npm run build:all",
     "install:all": "npm install && cd landing-page && npm install && cd ../citizen-portal && npm install && cd ../admin-dashboard && npm install && cd .."
   },
   "devDependencies": {
-    "concurrently": "^7.6.0"
+    "concurrently": "^7.6.0",
+    "fs-extra": "^11.1.1"
   }
 }

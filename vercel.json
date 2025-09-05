@@ -1,29 +1,28 @@
 {
-  "functions": {
-    "landing-page/index.html": {
-      "includeFiles": "landing-page/**"
-    }
-  },
+  "buildCommand": "npm run vercel-build",
+  "outputDirectory": "dist",
+  "installCommand": "npm run install:all",
+  "framework": null,
   "rewrites": [
     {
       "source": "/",
-      "destination": "/landing-page/index.html"
+      "destination": "/index.html"
     },
     {
       "source": "/citizen",
-      "destination": "/citizen-portal/index.html"
+      "destination": "/citizen/index.html"
     },
     {
       "source": "/citizen/(.*)",
-      "destination": "/citizen-portal/$1"
+      "destination": "/citizen/index.html"
     },
     {
-      "source": "/admin",
-      "destination": "/admin-dashboard/index.html"
+      "source": "/admin", 
+      "destination": "/admin/index.html"
     },
     {
       "source": "/admin/(.*)",
-      "destination": "/admin-dashboard/$1"
+      "destination": "/admin/index.html"
     }
   ],
   "headers": [
@@ -35,11 +34,11 @@
           "value": "nosniff"
         },
         {
-          "key": "X-Frame-Options", 
+          "key": "X-Frame-Options",
           "value": "DENY"
         },
         {
-          "key": "X-XSS-Protection",
+          "key": "X-XSS-Protection", 
           "value": "1; mode=block"
         }
       ]
