@@ -37,6 +37,10 @@ function Auth() {
     setError(null)
 
     try {
+      // Get current URL for proper redirects
+      const currentOrigin = window.location.origin
+      const redirectTo = `${currentOrigin}/admin`
+
       if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
@@ -48,7 +52,8 @@ function Auth() {
           email,
           password,
           options: {
-            data: { name, role: 'admin' } // Set admin role for new signups
+            data: { name, role: 'admin' },
+            emailRedirectTo: redirectTo // Dynamic redirect URL
           }
         })
         if (error) throw error

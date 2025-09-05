@@ -15,25 +15,28 @@ const Auth = () => {
     setError(null);
 
     try {
+      // Get current URL for proper redirects
+      const currentOrigin = window.location.origin
+      const redirectTo = `${currentOrigin}/citizen`
+
       if (isLogin) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password
         });
         if (error) throw error;
-        // Redirect to dashboard on success
-        window.location.href = '/dashboard';
+        // No manual redirect needed - auth state change will handle it
       } else {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            data: { name }
+            data: { name },
+            emailRedirectTo: redirectTo // Dynamic redirect URL
           }
         });
         if (error) throw error;
-        // Redirect to dashboard on success
-        window.location.href = '/dashboard';
+        alert('Check your email to confirm your account!');
       }
     } catch (err) {
       setError(err.message);
