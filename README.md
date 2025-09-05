@@ -46,6 +46,40 @@ A web-based platform for citizens to report civic issues (like potholes, broken 
     - Citizen Portal will be available at `http://localhost:5173`
     - Admin Dashboard will be available at `http://localhost:5174`
 
+## Applications
+
+This project includes three applications:
+
+1. **Landing Page** (`http://localhost:3000`): Entry point that routes to citizen portal or admin dashboard
+2. **Citizen Portal** (`http://localhost:5173`): Main application for citizens to submit reports
+3. **Admin Dashboard** (`http://localhost:5174`): Application for municipal staff to manage reports
+
+## Development URLs
+
+- Landing Page: http://localhost:3000
+- Citizen Portal: http://localhost:5173  
+- Admin Dashboard: http://localhost:5174
+
+## Single Vercel Deployment
+
+This project is configured for single Vercel deployment with these production URLs:
+- Landing Page: `https://your-app.vercel.app/`
+- Citizen Portal: `https://your-app.vercel.app/citizen/`
+- Admin Dashboard: `https://your-app.vercel.app/admin/`
+
+### Deployment Setup
+
+1. Push code to GitHub
+2. In Vercel dashboard:
+   - Import your GitHub repository
+   - Build Command: `npm run vercel-build`
+   - Output Directory: (leave empty)
+   - Install Command: `npm run install:all`
+3. Add environment variables in Vercel:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Deploy
+
 ## Deployment
 
 - **Frontend (Vercel):**
