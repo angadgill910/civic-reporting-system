@@ -8,55 +8,149 @@ import './App.css'
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
+console.log('Supabase config:', { 
+  url: supabaseUrl ? 'Present' : 'Missing', 
+  key: supabaseAnonKey ? 'Present' : 'Missing' 
+})
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('Missing Supabase environment variables')
+}
+
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Export supabase for use in other components
 export { supabase }
 
-// Simple Auth Component
+// Auth Component matching citizen portal design
 function Auth() {
-  const [loading, setLoading] = useState(false)
+  const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(null)
 
-  const handleLogin = async (e) => {
+  const handleAuth = async (e) => {
     e.preventDefault()
     setLoading(true)
-    
-    const { error } = await supabase.auth.signInWithOtp({
-      email: email,
-    })
-    
-    if (error) {
-      alert(error.message)
-    } else {
-      alert('Check your email for the login link!')
+    setError(null)
+
+    try {
+      if (isLogin) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        })
+        if (error) throw error
+      } else {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { name, role: 'admin' } // Set admin role for new signups
+          }
+        })
+        if (error) throw error
+        alert('Check your email to confirm your account!')
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
-    <form onSubmit={handleLogin} className="space-y-4">
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email address
-        </label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          placeholder="your@email.com"
-          required
-        />
+    <form className="mt-8 space-y-6" onSubmit={handleAuth}>
+      <input type="hidden" name="remember" value="true" />
+      <div className="rounded-md shadow-sm -space-y-px">
+        {!isLogin && (
+          <div>
+            <label htmlFor="name" className="sr-only">Name</label>
+            <input
+              id="name"
+              name="name"
+              type="text"
+              required={!isLogin}
+              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+              placeholder="Full Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+        )}
+        <div>
+          <label htmlFor="email-address" className="sr-only">Email address</label>
+          <input
+            id="email-address"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${isLogin ? 'rounded-t-md' : ''} focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className="sr-only">Password</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
       </div>
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-      >
-        {loading ? 'Loading...' : 'Send magic link'}
-      </button>
+
+      {error && (
+        <div className="text-red-500 text-sm text-center">
+          {error}
+        </div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <div className="text-sm">
+          <button
+            type="button"
+            className="font-medium text-indigo-600 hover:text-indigo-500"
+            onClick={() => setIsLogin(!isLogin)}
+          >
+            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
+          </button>
+        </div>
+
+        {isLogin && (
+          <div className="text-sm">
+            <a href="#" className="font-medium text-indigo-600 hover:text-indigo-500">
+              Forgot your password?
+            </a>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+        >
+          {loading ? (
+            <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : null}
+          {isLogin ? 'Sign in' : 'Sign up'}
+        </button>
+      </div>
     </form>
   )
 }
@@ -66,6 +160,8 @@ function App() {
   const [activeView, setActiveView] = useState('map')
   const [isAdmin, setIsAdmin] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [authMode, setAuthMode] = useState('login') // 'login' or 'signup'
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     // Get initial session
@@ -75,7 +171,8 @@ function App() {
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session)
       setSession(session)
     })
 
@@ -110,7 +207,45 @@ function App() {
   }
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut()
+    try {
+      setSigningOut(true)
+      console.log('Starting sign out process...')
+      console.log('Current session:', session)
+      
+      // Clear all local storage and session storage
+      localStorage.clear()
+      sessionStorage.clear()
+      
+      // Try different sign out approaches
+      const { error } = await supabase.auth.signOut()
+      
+      if (error) {
+        console.warn('Supabase sign out error (continuing anyway):', error)
+      }
+      
+      console.log('Sign out completed')
+      // Force clear session state
+      setSession(null)
+      setIsAdmin(false)
+      
+      // Force reload to ensure clean state
+      setTimeout(() => {
+        window.location.reload()
+      }, 100)
+      
+    } catch (error) {
+      console.error('Error during sign out:', error)
+      // Force clear even on error
+      localStorage.clear()
+      sessionStorage.clear()
+      setSession(null)
+      setIsAdmin(false)
+      setTimeout(() => {
+        window.location.reload()
+      }, 100)
+    } finally {
+      setSigningOut(false)
+    }
   }
 
   if (loading) {
@@ -121,14 +256,36 @@ function App() {
     )
   }
 
-  if (!session) {
+  // Check for missing environment variables
+  if (!supabaseUrl || !supabaseAnonKey) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <h2 className="text-2xl font-bold mb-4 text-center">Admin Access</h2>
-          <p className="mb-6 text-gray-600 text-center">
-            Please sign in with an admin account to access the dashboard.
+          <h2 className="text-2xl font-bold mb-4 text-center text-red-600">Configuration Error</h2>
+          <p className="mb-4 text-gray-600 text-center">
+            Missing Supabase environment variables. Please check your configuration.
           </p>
+          <div className="text-sm text-gray-500">
+            <p>VITE_SUPABASE_URL: {supabaseUrl ? '✓' : '✗'}</p>
+            <p>VITE_SUPABASE_ANON_KEY: {supabaseAnonKey ? '✓' : '✗'}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full space-y-8">
+          <div>
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+              Admin Dashboard Access
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Sign in to access the administrative dashboard
+            </p>
+          </div>
           <Auth />
         </div>
       </div>
@@ -145,9 +302,10 @@ function App() {
           </p>
           <button
             onClick={handleSignOut}
-            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
+            disabled={signingOut}
+            className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:opacity-50"
           >
-            Sign Out
+            {signingOut ? 'Signing Out...' : 'Sign Out'}
           </button>
         </div>
       </div>
@@ -183,9 +341,10 @@ function App() {
             </button>
             <button
               onClick={handleSignOut}
-              className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-200"
+              disabled={signingOut}
+              className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
             >
-              Sign Out
+              {signingOut ? 'Signing Out...' : 'Sign Out'}
             </button>
           </div>
         </div>
